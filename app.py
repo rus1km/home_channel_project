@@ -1,33 +1,15 @@
-import os
-import requests
 import time
-from dotenv import load_dotenv
 from alerts import get_air_raid_alert_status
 from weather import get_air_quality_index
-
-# Load environment variables from .env file
-load_dotenv()
-
-BOT_TOKEN = os.getenv("BOT_TOKEN")
-CHAT_ID = os.getenv("CHAT_ID")
-CITY_UID = os.getenv("CITY_UID")
-
-def send_message(message):
-    url = f"https://api.telegram.org/bot{BOT_TOKEN}/sendMessage"
-    payload = {
-        "chat_id": CHAT_ID,
-        "text": message
-    }
-    response = requests.post(url, json=payload)
-    return response.json()
+from telegram import send_message
 
 def main():
     previous_alert_status = None  # Initialize to track alert status changes
-    previous_aqi_status = None          # Initialize to track AQI updates
+    previous_aqi_status = None    # Initialize to track AQI updates
 
     while True:
         # Fetch current alert status
-        current_alert_status = get_air_raid_alert_status(CITY_UID)
+        current_alert_status = get_air_raid_alert_status()
         
         # Check if the status has changed
         if current_alert_status != previous_alert_status:
