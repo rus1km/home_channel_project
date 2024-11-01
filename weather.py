@@ -7,8 +7,8 @@ from dotenv import load_dotenv
 load_dotenv()
 
 WEATHER_API_KEY = os.getenv("WEATHER_API_KEY")
-LAT = os.getenv("LAT")
-LON = os.getenv("LON")
+LAT = float(os.getenv("LAT"))
+LON = float(os.getenv("LON"))
 
 def get_air_quality_index():
     url = f"http://api.openweathermap.org/data/2.5/air_pollution?lat={LAT}&lon={LON}&appid={WEATHER_API_KEY}"
