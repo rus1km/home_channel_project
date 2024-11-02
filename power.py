@@ -3,21 +3,20 @@ import serial
 import time
 
 # Adjust the port and baudrate to match your setup
-SERIAL_PORT = "/dev/cu.usbserial-10"  # Replace with the correct port, e.g., "/dev/ttyUSB0" on Linux or "COM3" on Windows
+SERIAL_PORT = "/dev/cu.usbserial-10"  # Replace with the correct port
 BAUD_RATE = 9600
 
-def read_voltage():
-    # Open serial port
+def power_monitor():
     with serial.Serial(SERIAL_PORT, BAUD_RATE, timeout=1) as ser:
-        time.sleep(2)  # Allow time for Arduino to reset and start sending data
+        time.sleep(2)  # Allow Arduino to reset
 
         while True:
-            # Read a line of data from the serial port
             if ser.in_waiting > 0:
                 line = ser.readline().decode("utf-8").strip()
-                print(f"Voltage reading: {line}")  # Print or save the reading as needed
-
-try:
-    read_voltage()
-except KeyboardInterrupt:
-    print("Program stopped.")
+                try:
+                    voltage = float(line)
+                    # Return 1 if voltage is 0 (power is on), otherwise 0
+                    power_status = 1 if voltage == 0 else 0
+                    yield power_status
+                except ValueError:
+                    print("Error parsing voltage data")

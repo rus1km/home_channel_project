@@ -20,7 +20,6 @@ def get_air_quality_index():
         
         # Extract AQI information from the response
         aqi = data['list'][0]['main']['aqi']  # AQI is a number from 1 to 5
-        print("AQI:", aqi)
         return aqi
     
     except requests.exceptions.RequestException as e:

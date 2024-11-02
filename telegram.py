@@ -20,7 +20,6 @@ def send_message(message):
     return response.json()
 
 def update_pinned_message(message):
-    """Edit the pinned message with new information."""
     url = f"https://api.telegram.org/bot{BOT_TOKEN}/editMessageText"
     payload = {
         "chat_id": CHAT_ID,
