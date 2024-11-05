@@ -17,7 +17,7 @@ def power_monitor():
                 print("Arduino connected.")
             except serial.SerialException:
                 print("Waiting for Arduino...")
-                time.sleep(5)  # Wait before retrying
+                time.sleep(60)  # Wait before retrying
                 continue  # Retry the loop
 
         # If connected, attempt to read data
