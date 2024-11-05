@@ -6,11 +6,14 @@ from telegram import send_message, update_pinned_message
 from power import power_monitor
 
 # Set up the interval for checking air raid and AQI updates
-CHECK_INTERVAL = 30  # Adjust as needed
+CHECK_INTERVAL = 30            # Check air raid alert every 30 seconds
+AQI_CHECK_INTERVAL = 3600.0    # Check AQI and temperature every 1 hour
+
 CURRENT_STATUS = {
     "alert": 0,
     "power": None,
-    "aqi": None
+    "aqi": None,
+    "temp": None
 }
 
 def monitor_power():
@@ -29,28 +32,33 @@ def monitor_power():
 def monitor_alerts_and_aqi():
     previous_alert_status = 0
     previous_aqi_status = None
+    last_aqi_check = 0.0
 
     while True:
         try:
-            # Fetch air raid alert status and AQI
+            # Check air raid alert status
             CURRENT_STATUS["alert"] = get_air_raid_alert_status()
-            CURRENT_STATUS["aqi"] = get_air_quality_index()
-
-            # Send air raid alert message if there's a change
             if CURRENT_STATUS["alert"] != previous_alert_status:
                 alert_message = "🚨 Air Raid Alert!" if CURRENT_STATUS["alert"] == 1 else "✅ Air Raid Over."
                 send_message(alert_message)
                 previous_alert_status = CURRENT_STATUS["alert"]
                 update_message()
 
-            # Send AQI message if AQI changes significantly
-            if CURRENT_STATUS["aqi"] != previous_aqi_status:
-                if CURRENT_STATUS["aqi"] >= 3:
+            # Check AQI and temperature if an hour has passed since the last check
+            current_time = time.time()
+            if current_time - last_aqi_check >= AQI_CHECK_INTERVAL:
+                aqi_data = get_air_quality_index()
+                CURRENT_STATUS["aqi"] = aqi_data["aqi"]
+                CURRENT_STATUS["temp"] = aqi_data["temperature"]
+                
+                # Send AQI message if AQI is at an unhealthy level
+                if CURRENT_STATUS["aqi"] >= 50 and CURRENT_STATUS["aqi"] > previous_aqi_status:
                     send_message("💨 Air quality has worsened.")
                 previous_aqi_status = CURRENT_STATUS["aqi"]
+                last_aqi_check = current_time  # Update last AQI check time
                 update_message()
 
-            # Wait before the next check for alerts and AQI
+            # Wait before the next air raid alert check
             time.sleep(CHECK_INTERVAL)
 
         except Exception as e:
@@ -60,8 +68,9 @@ def update_message():
     # Update the pinned message with current statuses only
     full_message = (
         f"📢 - {'🚨' if CURRENT_STATUS['alert'] == 1 else '✅'} | "
+        f"🔌 - {'🔋' if CURRENT_STATUS['power'] == 1 else '🪫'} | "
         f"💨 - {CURRENT_STATUS['aqi']} | "
-        f"🔌 - {'🔋' if CURRENT_STATUS['power'] == 1 else '🪫'}"
+        f"🌡️ - {CURRENT_STATUS['temp']}°C"
     )
     update_pinned_message(full_message)
 
