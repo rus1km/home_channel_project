@@ -33,3 +33,15 @@ def get_air_quality_index():
     except requests.exceptions.RequestException as e:
         print("Error fetching air quality data:", e)
         return None
+    
+def get_aqi_display(aqi_value):
+    if aqi_value <= 50:
+        return f"🟢 {aqi_value}"  # Green circle for 0-50
+    elif aqi_value <= 100:
+        return f"🟡 {aqi_value}"  # Yellow circle for 51-100
+    elif aqi_value <= 150:
+        return f"🟠 {aqi_value}"  # Orange circle for 101-150
+    elif aqi_value <= 200:
+        return f"🔴 {aqi_value}"  # Red circle for 151-200
+    else:
+        return f"⚫ {aqi_value}" 

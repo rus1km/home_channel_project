@@ -1,7 +1,7 @@
 import threading
 import time
 from alerts import get_air_raid_alert_status
-from weather import get_air_quality_index
+from weather import get_air_quality_index, get_aqi_display
 from telegram import send_message, update_pinned_message
 from power import power_monitor
 
@@ -52,8 +52,8 @@ def monitor_alerts_and_aqi():
                 CURRENT_STATUS["temp"] = aqi_data["temperature"]
                 
                 # Send AQI message if AQI is at an unhealthy level
-                if CURRENT_STATUS["aqi"] >= 50 and CURRENT_STATUS["aqi"] > previous_aqi_status:
-                    send_message("💨 Air quality has worsened.")
+                if CURRENT_STATUS["aqi"] >= 100 and CURRENT_STATUS["aqi"] > previous_aqi_status:
+                    send_message(f"💨 Air quality has worsened. AQI {CURRENT_STATUS["aqi"]}")
                 previous_aqi_status = CURRENT_STATUS["aqi"]
                 last_aqi_check = current_time  # Update last AQI check time
                 update_message()
@@ -66,11 +66,12 @@ def monitor_alerts_and_aqi():
 
 def update_message():
     # Update the pinned message with current statuses only
+    aqi_display = get_aqi_display(CURRENT_STATUS["aqi"])
     full_message = (
-        f"📢 - {'🚨' if CURRENT_STATUS['alert'] == 1 else '✅'} | "
-        f"🔌 - {'🔋' if CURRENT_STATUS['power'] == 1 else '🪫'} | "
-        f"💨 - {CURRENT_STATUS['aqi']} | "
-        f"🌡️ - {CURRENT_STATUS['temp']}°C"
+        f"📢 {'🚨' if CURRENT_STATUS['alert'] == 1 else '✅'} | "
+        f"🔌 {'🔋' if CURRENT_STATUS['power'] == 1 else '🪫'} | "
+        f"💨 {aqi_display} | "
+        f"🌡️ {CURRENT_STATUS['temp']}°C"
     )
     update_pinned_message(full_message)
 
