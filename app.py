@@ -53,7 +53,7 @@ def monitor_alerts_and_aqi():
                 
                 # Send AQI message if AQI is at an unhealthy level
                 if CURRENT_STATUS["aqi"] >= 100 and CURRENT_STATUS["aqi"] > previous_aqi_status:
-                    send_message(f"💨 Air quality has worsened. AQI {CURRENT_STATUS["aqi"]}")
+                    send_message(f"💨 Air quality has worsened. AQI {CURRENT_STATUS['aqi']}")
                 previous_aqi_status = CURRENT_STATUS["aqi"]
                 last_aqi_check = current_time  # Update last AQI check time
                 update_message()
