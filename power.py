@@ -8,16 +8,23 @@ BAUD_RATE = 9600
 SLEEP_TIME = 5  # Interval for retrying port connection
 
 def find_arduino_port():
-    """Scan for Arduino port by checking available USB ports."""
+    """Scan for Arduino port with a fallback for known port."""
+    KNOWN_PORT = '/dev/ttyUSB0'
     ports = list(serial.tools.list_ports.comports())
+    print("Available ports:", [port.device for port in ports])  # Debugging line
+
+    # Check known port first
+    if KNOWN_PORT in [port.device for port in ports]:
+        return KNOWN_PORT
+
+    # Fallback to automatic detection
     for port in ports:
         try:
             ser = serial.Serial(port.device, BAUD_RATE, timeout=1)
-            # Try reading a line to confirm the connection
             line = ser.readline().decode("utf-8").strip()
-            if line.replace(".", "", 1).isdigit():  # Expecting numeric data
+            if line.replace(".", "", 1).isdigit():
                 ser.close()
-                return port.device  # Return the port if valid data is found
+                return port.device
             ser.close()
         except (OSError, serial.SerialException):
             continue
@@ -25,21 +32,15 @@ def find_arduino_port():
 
 def power_monitor():
     ser = None
+    port = '/dev/cu.usbserial-10'  # Known port for testing
     while True:
         if ser is None or not ser.is_open:
-            # Attempt to locate and connect to Arduino
-            port = find_arduino_port()
-            if port:
-                try:
-                    ser = serial.Serial(port, BAUD_RATE, timeout=1)
-                    time.sleep(2)  # Allow Arduino to reset
-                    print(f"Arduino connected on {port}.")
-                except serial.SerialException:
-                    print(f"Failed to open port {port}. Retrying...")
-                    time.sleep(SLEEP_TIME)
-                    continue
-            else:
-                print("No Arduino detected. Scanning again...")
+            try:
+                ser = serial.Serial(port, BAUD_RATE, timeout=1)
+                time.sleep(2)  # Allow Arduino to reset
+                print(f"Arduino connected on {port}.")
+            except serial.SerialException:
+                print(f"Failed to open port {port}. Retrying...")
                 time.sleep(SLEEP_TIME)
                 continue
 
@@ -48,7 +49,6 @@ def power_monitor():
             if ser.in_waiting > 0:
                 line = ser.readline().decode("utf-8").strip()
                 voltage = float(line)
-                # Determine power status based on voltage reading
                 power_status = 1 if voltage == 0 else 0
                 yield power_status
         except ValueError:
