@@ -32,7 +32,7 @@ def find_arduino_port():
 
 def power_monitor():
     ser = None
-    port = '/dev/cu.usbserial-10'  # Known port for testing
+    port = find_arduino_port()
     while True:
         if ser is None or not ser.is_open:
             try:
