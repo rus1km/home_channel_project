@@ -1,12 +1,13 @@
 import threading
 import time
+import logging
 from alerts import get_air_raid_alert_status
 from weather import get_air_quality_index, get_aqi_display
 from telegram import send_message, update_pinned_message
 from power import power_monitor
 
 # Set up the interval for checking air raid and AQI updates
-CHECK_INTERVAL = 30            # Check air raid alert every 30 seconds
+CHECK_INTERVAL = 30.0            # Check air raid alert every 30 seconds
 AQI_CHECK_INTERVAL = 3600.0    # Check AQI and temperature every 1 hour
 
 CURRENT_STATUS = {
@@ -31,7 +32,7 @@ def monitor_power():
 
 def monitor_alerts_and_aqi():
     previous_alert_status = 0
-    previous_aqi_status = None
+    previous_aqi_status = 0
     last_aqi_check = 0.0
 
     while True:
@@ -48,13 +49,25 @@ def monitor_alerts_and_aqi():
             current_time = time.time()
             if current_time - last_aqi_check >= AQI_CHECK_INTERVAL:
                 aqi_data = get_air_quality_index()
-                CURRENT_STATUS["aqi"] = aqi_data["aqi"]
-                CURRENT_STATUS["temp"] = aqi_data["temperature"]
-                
-                # Send AQI message if AQI is at an unhealthy level
-                if CURRENT_STATUS["aqi"] >= 100 and CURRENT_STATUS["aqi"] > previous_aqi_status:
-                    send_message(f"💨 Air quality has worsened. AQI {CURRENT_STATUS['aqi']}")
-                previous_aqi_status = CURRENT_STATUS["aqi"]
+
+                # Ensure aqi_data is valid and contains the expected keys
+                if aqi_data and "aqi" in aqi_data and "temperature" in aqi_data:
+                    CURRENT_STATUS["aqi"] = aqi_data["aqi"]
+                    CURRENT_STATUS["temp"] = aqi_data["temperature"]
+                    logging.info(f"Updated AQI: {CURRENT_STATUS['aqi']}")
+                    logging.info(f"Updated temp: {CURRENT_STATUS['temp']}")
+
+                    # Send AQI message if AQI is at an unhealthy level
+                    if CURRENT_STATUS["aqi"] >= 100 and CURRENT_STATUS["aqi"] > previous_aqi_status:
+                        send_message(f"💨 Air quality has worsened. AQI {CURRENT_STATUS['aqi']}")
+                    elif CURRENT_STATUS["aqi"] < 100 and previous_aqi_status >= 100: 
+                        send_message(f"😊 Air quality has improved. AQI {CURRENT_STATUS['aqi']}")
+                    previous_aqi_status = CURRENT_STATUS["aqi"]
+                else:
+                    logging.error("Invalid AQI data received. Setting defaults.")
+                    CURRENT_STATUS["aqi"] = "N/D"
+                    CURRENT_STATUS["temp"] = "N/D"
+
                 last_aqi_check = current_time  # Update last AQI check time
                 update_message()
 
@@ -62,7 +75,10 @@ def monitor_alerts_and_aqi():
             time.sleep(CHECK_INTERVAL)
 
         except Exception as e:
-            print(f"Error in monitor_alerts_and_aqi: {e}")
+            logging.error(f"Error in monitor_alerts_and_aqi: {e}")
+            time.sleep(CHECK_INTERVAL)
+        except KeyboardInterrupt: 
+            logging.info("Shutting down monitor.")
 
 def update_message():
     # Update the pinned message with current statuses only
@@ -74,6 +90,15 @@ def update_message():
         f"🌡️ {CURRENT_STATUS['temp']}°C"
     )
     update_pinned_message(full_message)
+
+logging.basicConfig(
+    level=logging.INFO,
+    format="%(asctime)s - %(levelname)s - %(message)s",
+    handlers=[
+        logging.FileHandler("app.log"),  # Save logs to a file
+        logging.StreamHandler()          # Print logs to the terminal
+    ]
+)
 
 def main():
     # Start the power monitoring in a separate thread for real-time response
