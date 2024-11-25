@@ -16,6 +16,7 @@ def get_air_quality_index():
         response = requests.get(url)
         response.raise_for_status()  # Raise an exception for 4xx/5xx errors
         data = response.json()
+        print(f"Response data: {data}")
 
         aqi = None
         temperature = None

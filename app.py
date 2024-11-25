@@ -49,7 +49,9 @@ def monitor_alerts_and_aqi():
             if current_time - last_aqi_check >= AQI_CHECK_INTERVAL:
                 aqi_data = get_air_quality_index()
                 CURRENT_STATUS["aqi"] = aqi_data["aqi"]
+                print(f"Updated AQI: {CURRENT_STATUS['aqi']}")
                 CURRENT_STATUS["temp"] = aqi_data["temperature"]
+                print(f"Updated temp: {CURRENT_STATUS['temperature']}")
                 
                 # Send AQI message if AQI is at an unhealthy level
                 if CURRENT_STATUS["aqi"] >= 100 and CURRENT_STATUS["aqi"] > previous_aqi_status:
