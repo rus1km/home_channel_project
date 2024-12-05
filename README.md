@@ -1,6 +1,6 @@
 # Home Monitoring and Notification System
 
-#### Video Demo: [Link to the video demonstration of the project]
+#### Video Demo: https://youtu.be/6lbNguspIQg
 
 #### Description:
 
