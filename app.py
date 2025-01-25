@@ -1,13 +1,15 @@
 import threading
-import time
+from datetime import datetime, time as dt_time
 import logging
+import time
+
 from alerts import get_air_raid_alert_status
 from weather import get_air_quality_index, get_aqi_display
 from telegram import send_message, update_pinned_message
 from power import power_monitor
 
 # Set up the interval for checking air raid and AQI updates
-CHECK_INTERVAL = 30.0            # Check air raid alert every 30 seconds
+CHECK_INTERVAL = 30.0          # Check air raid alert every 30 seconds
 AQI_CHECK_INTERVAL = 3600.0    # Check AQI and temperature every 1 hour
 
 CURRENT_STATUS = {
@@ -17,6 +19,17 @@ CURRENT_STATUS = {
     "temp": None
 }
 
+def _is_within_operating_hours():
+    # Define the start and end times for the allowed range
+    start_time = dt_time(7, 0)  # 7:00 AM
+    end_time = dt_time(23, 0)   # 11:00 PM
+    
+    # Get the current time
+    now = datetime.now().time()
+    
+    # Check if the current time is within the range
+    return start_time <= now <= end_time
+
 def monitor_power():
     previous_power_status = None
     power_gen = power_monitor()
@@ -25,7 +38,7 @@ def monitor_power():
     for current_power_status in power_gen:
         CURRENT_STATUS["power"] = current_power_status
         if current_power_status != previous_power_status:
-            power_message = "🔋 Power restored." if current_power_status == 1 else "🪫 Power outage detected."
+            power_message = "🔋 Електропостачання відновлено." if current_power_status == 1 else "🪫 Електропостачання вимкнено."
             send_message(power_message)
             previous_power_status = current_power_status
             update_message()
@@ -40,7 +53,7 @@ def monitor_alerts_and_aqi():
             # Check air raid alert status
             CURRENT_STATUS["alert"] = get_air_raid_alert_status()
             if CURRENT_STATUS["alert"] != previous_alert_status:
-                alert_message = "🚨 Air Raid Alert!" if CURRENT_STATUS["alert"] == 1 else "✅ Air Raid Over."
+                alert_message = "🚨 Оголошено повітряну тривогу!" if CURRENT_STATUS["alert"] == 1 else "✅ Відбій повітряної тривоги."
                 send_message(alert_message)
                 previous_alert_status = CURRENT_STATUS["alert"]
                 update_message()
@@ -58,10 +71,11 @@ def monitor_alerts_and_aqi():
                     logging.info(f"Updated temp: {CURRENT_STATUS['temp']}")
 
                     # Send AQI message if AQI is at an unhealthy level
-                    if CURRENT_STATUS["aqi"] >= 100 and CURRENT_STATUS["aqi"] > previous_aqi_status:
-                        send_message(f"💨 Air quality has worsened. AQI {CURRENT_STATUS['aqi']}")
-                    elif CURRENT_STATUS["aqi"] < 100 and previous_aqi_status >= 100: 
-                        send_message(f"😊 Air quality has improved. AQI {CURRENT_STATUS['aqi']}")
+                    if _is_within_operating_hours():
+                        if CURRENT_STATUS["aqi"] >= 150 and CURRENT_STATUS["aqi"] > previous_aqi_status:
+                            send_message(f"💨 Якість повітря погіршилась. AQI {CURRENT_STATUS['aqi']}")
+                        elif CURRENT_STATUS["aqi"] < 100 and previous_aqi_status >= 100: 
+                            send_message(f"😊 Якість повітря покращилась. AQI {CURRENT_STATUS['aqi']}")
                     previous_aqi_status = CURRENT_STATUS["aqi"]
                 else:
                     logging.error("Invalid AQI data received. Setting defaults.")
